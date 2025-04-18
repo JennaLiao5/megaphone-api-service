@@ -2,9 +2,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List
 import requests
-from app import schemas, megaphone_client
+from app import megaphone_client
+from app.schemas import remote as schemas
 
-router = APIRouter()
+
+router = APIRouter(tags=["Remote - Campaigns & Advertisers"])
 
 @router.get("/advertise/remote", response_model=List[schemas.AdvertiserOut])
 def fetch_remote_advertises():
