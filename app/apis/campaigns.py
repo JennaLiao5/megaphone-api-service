@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -19,12 +19,13 @@ def list_local_campaigns(
     db: Session = Depends(get_db),
     search: Optional[str] = Query(None, description="Search by title"),
     advertiser_id: Optional[str] = Query(None, description="Filter by advertiser ID (exact match)"),
+    archived: Optional[bool] = Query(None, description="Filter by archived status"),
     sort_by: SortByField = Query("created_at", description="Field to sort by"),
     sort_order: SortOrder = Query("desc", description="Sort order: 'asc' or 'desc'"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page")
 ):
-    return crud.list_campaigns(db, search, advertiser_id, sort_by, sort_order, page, per_page)
+    return crud.list_campaigns(db, search, advertiser_id, archived, sort_by, sort_order, page, per_page)
 
 @router.post("/campaigns", response_model=CampaignLocalOut, status_code=status.HTTP_201_CREATED)
 def create_campaign(campaign: CampaignCreate, db: Session = Depends(get_db)):
@@ -37,3 +38,11 @@ def get_campaign(campaign_id: str, db: Session = Depends(get_db)):
 @router.put("/campaigns/{campaign_id}", response_model=CampaignLocalOut)
 def update_campaign(campaign_id: str, campaign: CampaignUpdate, db: Session = Depends(get_db)):
     return crud.update_campaign(db, campaign_id, campaign)
+
+@router.put("/campaigns/{campaign_id}/archive", response_model=CampaignLocalOut)
+def toggle_campaign_archive(
+    campaign_id: str,
+    archived: bool = Body(..., embed=True, description="Set to true to archive, false to unarchive"),
+    db: Session = Depends(get_db)
+):
+    return crud.archive_campaign(db, campaign_id, archived)

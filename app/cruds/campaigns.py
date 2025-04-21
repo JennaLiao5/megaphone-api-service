@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, asc
 from fastapi import HTTPException
 import requests
+from datetime import datetime
 
 from app import models, megaphone_client
 from app.schemas.campaigns import CampaignLocalOut, CampaignCreate, CampaignUpdate
@@ -13,7 +14,7 @@ def get_advertisers(db: Session):
     return db.query(models.Advertiser).options(joinedload(models.Advertiser.agency)).all()
 
 
-def list_campaigns(db: Session, search, advertiser_id, sort_by, sort_order, page, per_page):
+def list_campaigns(db: Session, search, advertiser_id, archived, sort_by, sort_order, page, per_page):
     query = db.query(models.Campaign).options(
         joinedload(models.Campaign.advertiser).joinedload(models.Advertiser.agency)
     )
@@ -23,6 +24,9 @@ def list_campaigns(db: Session, search, advertiser_id, sort_by, sort_order, page
 
     if advertiser_id:
         query = query.filter(models.Campaign.advertiser_id == advertiser_id)
+    
+    if archived is not None:
+        query = query.filter(models.Campaign.archived == archived)
 
     sort_column = getattr(models.Campaign, sort_by)
     query = query.order_by(desc(sort_column) if sort_order == "desc" else asc(sort_column))
@@ -114,3 +118,18 @@ def update_campaign(db: Session, campaign_id: str, campaign: CampaignUpdate):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+def archive_campaign(db: Session, campaign_id: str, archived: bool):
+    campaign = db.query(models.Campaign).filter_by(id=campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    campaign.archived = archived
+    campaign.updated_at = datetime.utcnow()
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update archived status: {e}")
+
+    return CampaignLocalOut.model_validate(campaign, from_attributes=True)
