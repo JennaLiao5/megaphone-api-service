@@ -6,17 +6,17 @@ from app import megaphone_client
 from app.schemas import remote as schemas
 
 
-router = APIRouter(tags=["Remote - Campaigns & Advertisers"])
+router = APIRouter(prefix="/remote", tags=["Remote - Campaigns & Advertisers"])
 
-@router.get("/advertise/remote", response_model=List[schemas.AdvertiserOut])
-def fetch_remote_advertises():
+@router.get("/advertisers", response_model=List[schemas.AdvertiserOut])
+def fetch_remote_advertisers():
     try:
         advertisers = megaphone_client.list_advertisers()
         return advertisers
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/campaigns/remote", response_model=List[schemas.CampaignOut])
+@router.get("/campaigns", response_model=List[schemas.CampaignOut])
 def fetch_remote_campaigns():
     try:
         campaigns = megaphone_client.list_campaigns()
@@ -24,7 +24,7 @@ def fetch_remote_campaigns():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.post("/campaigns/remote", response_model=schemas.CampaignOut)
+@router.post("/campaigns", response_model=schemas.CampaignOut)
 def create_remote_campaign(campaign: schemas.CampaignCreate):
     try:
         result = megaphone_client.create_campaign(campaign.dict(exclude_none=True))
@@ -41,7 +41,7 @@ def create_remote_campaign(campaign: schemas.CampaignCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.get("/campaigns/remote/{campaign_id}", response_model=schemas.CampaignOut)
+@router.get("/campaigns/{campaign_id}", response_model=schemas.CampaignOut)
 def fetch_single_remote_campaign(campaign_id: str):
     try:
         result = megaphone_client.get_campaign(campaign_id)
@@ -54,7 +54,7 @@ def fetch_single_remote_campaign(campaign_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/campaigns/remote/{campaign_id}", response_model=schemas.CampaignOut)
+@router.put("/campaigns/{campaign_id}", response_model=schemas.CampaignOut)
 def update_remote_campaign(campaign_id: str, campaign: schemas.CampaignUpdate):
     try:
         result = megaphone_client.update_campaign(campaign_id, campaign.dict(exclude_none=True))

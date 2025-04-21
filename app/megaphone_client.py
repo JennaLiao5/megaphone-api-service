@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+from app.schemas.campaigns import CampaignCreate, CampaignUpdate
 
 load_dotenv()
 
@@ -13,6 +14,16 @@ headers = {
     "Accept": "application/json",
     "Content-Type": "application/json"
 }
+
+def camelize_dict(d: dict) -> dict:
+    def camelize(s):
+        parts = s.split('_')
+        return parts[0] + ''.join(word.capitalize() for word in parts[1:])
+    return {camelize(k): v for k, v in d.items()}
+
+def _to_camel(obj: dict) -> dict:
+    return camelize_dict(obj)
+
 
 def fetch_all_paginated(url):
     results = []
@@ -41,6 +52,9 @@ def list_campaigns():
     url = f"{BASE_URL}/organizations/{ORGANIZATION_ID}/campaigns?per_page=100"
     return fetch_all_paginated(url)
 
+def create_campaign_from_model(campaign: CampaignCreate) -> dict:
+    return create_campaign(_to_camel(campaign.model_dump(exclude_none=True)))
+
 def create_campaign(payload: dict):
     if not payload.get("title") or not payload.get("advertiserId"):
         raise ValueError("Missing required fields: 'title' and 'advertiserId'")
@@ -55,6 +69,9 @@ def get_campaign(campaign_id: str):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()
+
+def update_campaign_from_model(campaign_id: str, update: CampaignUpdate) -> dict:
+    return update_campaign(campaign_id, _to_camel(update.model_dump(exclude_none=True)))
 
 def update_campaign(campaign_id: str, payload: dict):    
     url = f"{BASE_URL}/organizations/{ORGANIZATION_ID}/campaigns/{campaign_id}"

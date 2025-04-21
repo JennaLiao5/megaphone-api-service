@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field, validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
-import re
+from app.validators import campaigns as v
 
 
 class Agency(BaseModel):
@@ -24,30 +24,17 @@ class CampaignBase(BaseModel):
     totalBudgetCents: Optional[int] = Field(None, description="Total budget in cents (optional)")
     totalBudgetCurrency: Optional[str] = Field(None, description="Currency code, e.g. USD (optional)")
 
-    @validator("totalBudgetCents", pre=True)
-    def validate_total_budget_cents(cls, v):
-        if v is None:
-            return v
-        if isinstance(v, str):
-            if not v.strip().isdigit():
-                raise ValueError("Total budget cents must be a valid integer")
-            return int(v.strip())
-        if not isinstance(v, int):
-            raise ValueError("Total budget cents must be a valid integer")
-        return v
-    
-    @validator("totalBudgetCurrency", pre=True)
-    def validate_currency(cls, v):
-        if v is None:
-            return v
-        if isinstance(v, str) and not v.strip():
-            raise ValueError("Total budget currency must not be empty")
-        if not re.fullmatch(r"^[A-Z]{3}$", v.strip()):
-            raise ValueError("Total budget currency must be a valid 3-letter uppercase code (e.g. USD)")
-        return v.strip()
  
 class CampaignCreate(CampaignBase):
-    pass
+    @field_validator("totalBudgetCents", mode="before")
+    @classmethod
+    def validate_budget(cls, val):
+        return v.validate_budget_cents(val, field_name="totalBudgetCents")
+
+    @field_validator("totalBudgetCurrency", mode="before")
+    @classmethod
+    def validate_currency(cls, val):
+        return v.validate_currency_code(val, field_name="totalBudgetCurrency")
 
 class CampaignUpdate(CampaignBase):
     title: Optional[str] = Field(None, description="Title of the campaign")
@@ -67,6 +54,16 @@ class CampaignUpdate(CampaignBase):
                 "At least one of 'title', 'advertiserId', 'totalBudgetCents', or 'totalBudgetCurrency' must be provided"
             )
         return self
+    
+    @field_validator("totalBudgetCents", mode="before")
+    @classmethod
+    def validate_budget(cls, val):
+        return v.validate_budget_cents(val, field_name="totalBudgetCents")
+
+    @field_validator("totalBudgetCurrency", mode="before")
+    @classmethod
+    def validate_currency(cls, val):
+        return v.validate_currency_code(val, field_name="totalBudgetCurrency")
     
 class CampaignOut(CampaignBase):
     id: str

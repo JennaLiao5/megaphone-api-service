@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.cruds.sync import sync_campaign, sync_advertiser
 from app import megaphone_client
 from app.schemas.sync_response import SyncResponse
 
-router = APIRouter(tags=["Sync"])
+router = APIRouter(prefix="/sync", tags=["Sync"])
 
 def generate_sync_response(resource: str, success: int, failed: int):
     total = success + failed
@@ -28,7 +27,7 @@ def generate_sync_response(resource: str, success: int, failed: int):
         "failed": failed
     }
 
-@router.post("/campaigns/sync", response_model=SyncResponse)
+@router.post("/campaigns", response_model=SyncResponse)
 def sync_campaigns(db: Session = Depends(get_db)):
     campaigns = megaphone_client.list_campaigns()
     success = 0
@@ -44,7 +43,7 @@ def sync_campaigns(db: Session = Depends(get_db)):
     return generate_sync_response("Campaigns", success, failed)
 
 
-@router.post("/advertisers/sync", response_model=SyncResponse)
+@router.post("/advertisers", response_model=SyncResponse)
 def sync_advertisers(db: Session = Depends(get_db)):
     advertisers = megaphone_client.list_advertisers()
     success = 0
