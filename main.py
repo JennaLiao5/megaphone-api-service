@@ -8,15 +8,9 @@ from app.apis.sync import router as sync_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.cruds.sync import sync_all_campaigns
 from datetime import datetime
+from app.logger import configure_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()  # Also print to the console
-    ]
-)
+configure_logging()
 
 app = FastAPI()
 init_db()
