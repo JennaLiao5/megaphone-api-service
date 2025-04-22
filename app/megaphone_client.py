@@ -2,6 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from app.schemas.campaigns import CampaignCreate, CampaignUpdate
+from ratelimit import limits, sleep_and_retry
 
 load_dotenv()
 
@@ -14,6 +15,15 @@ headers = {
     "Accept": "application/json",
     "Content-Type": "application/json"
 }
+
+# --- Rate-limited requests wrapper ---
+@sleep_and_retry
+@limits(calls=60, period=60)
+def safe_request(method: str, url: str, **kwargs):
+    response = requests.request(method, url, headers=headers, **kwargs)
+    response.raise_for_status()
+    return response
+
 
 def camelize_dict(d: dict) -> dict:
     def camelize(s):
@@ -28,8 +38,7 @@ def _to_camel(obj: dict) -> dict:
 def fetch_all_paginated(url):
     results = []
     while url:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        response = safe_request("GET", url)
         results.extend(response.json())
         
         link_header = response.headers.get("Link")
@@ -60,21 +69,18 @@ def create_campaign(payload: dict):
         raise ValueError("Missing required fields: 'title' and 'advertiserId'")
 
     url = f"{BASE_URL}/organizations/{ORGANIZATION_ID}/campaigns"
-    response = requests.post(url, headers=headers, json=payload)
-    response.raise_for_status()
+    response = safe_request("POST", url, json=payload)
     return response.json()
 
 def get_campaign(campaign_id: str):
     url = f"{BASE_URL}/organizations/{ORGANIZATION_ID}/campaigns/{campaign_id}"
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
+    response = safe_request("GET", url)
     return response.json()
 
 def update_campaign_from_model(campaign_id: str, update: CampaignUpdate) -> dict:
     return update_campaign(campaign_id, _to_camel(update.model_dump(exclude_none=True)))
 
-def update_campaign(campaign_id: str, payload: dict):    
+def update_campaign(campaign_id: str, payload: dict):
     url = f"{BASE_URL}/organizations/{ORGANIZATION_ID}/campaigns/{campaign_id}"
-    response = requests.put(url, headers=headers, json=payload)
-    response.raise_for_status()
+    response = safe_request("PUT", url, json=payload)
     return response.json()

@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models import Campaign, Advertiser, Agency
 from datetime import datetime
 import logging
+from app.megaphone_client import list_campaigns
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +116,14 @@ def sync_campaign(db: Session, campaign_data: dict) -> Campaign:
         logger.warning(f"Data: {campaign_data}")
         logger.exception(e)
         return None
+    
+def sync_all_campaigns(db: Session):
+    remote_campaigns = list_campaigns()
+    remote_ids = set(c["id"] for c in remote_campaigns)
+    for c in remote_campaigns:
+        sync_campaign(db, c)
+    local_campaigns = db.query(Campaign).all()
+    for campaign in local_campaigns:
+        if campaign.megaphone_id not in remote_ids:
+            db.delete(campaign)
+    db.commit()
