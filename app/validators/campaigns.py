@@ -11,6 +11,8 @@ def validate_budget_cents(v, field_name="This field"):
         return int(v.strip())
     if not isinstance(v, int):
         raise HTTPException(status_code=400, detail=f"{field_name} must be a valid integer")
+    if v < 0:
+        raise HTTPException(status_code=400, detail=f"{field_name} must be a positive integer")
     return v
 
 
