@@ -24,7 +24,13 @@ def fetch_remote_campaigns():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.post("/campaigns", response_model=schemas.CampaignOut)
+@router.post(
+    "/campaigns",
+    response_model=schemas.CampaignOut,
+    responses={
+        400: {"description": "Bad Request - Invalid input."},
+    },
+)
 def create_remote_campaign(campaign: schemas.CampaignCreate):
     try:
         result = megaphone_client.create_campaign(campaign.dict(exclude_none=True))
@@ -54,7 +60,13 @@ def fetch_single_remote_campaign(campaign_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/campaigns/{campaign_id}", response_model=schemas.CampaignOut)
+@router.put(
+    "/campaigns/{campaign_id}",
+    response_model=schemas.CampaignOut,
+    responses={
+        400: {"description": "Bad Request - Invalid input."},
+    },
+)
 def update_remote_campaign(campaign_id: str, campaign: schemas.CampaignUpdate):
     try:
         result = megaphone_client.update_campaign(campaign_id, campaign.dict(exclude_none=True))

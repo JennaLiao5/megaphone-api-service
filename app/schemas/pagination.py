@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Generic, TypeVar, List, Literal
 
 T = TypeVar("T")
@@ -12,8 +12,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     items: List[T]
     meta: PaginationMeta
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Sorting Field Restrictions (Based on the Campaign Field)

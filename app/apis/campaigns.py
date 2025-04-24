@@ -27,19 +27,45 @@ def list_local_campaigns(
 ):
     return crud.list_campaigns(db, search, advertiser_id, archived, sort_by, sort_order, page, per_page)
 
-@router.post("/campaigns", response_model=CampaignLocalOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/campaigns",
+    response_model=CampaignLocalOut,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        400: {
+            "description": "Bad Request - Invalid input or advertiser not found.\n\nPossible error messages include:\n- total_budget_cents must be a valid integer\n- total_budget_cents must be a positive integer\n- total_budget_currency must not be empty\n- total_budget_currency must be a valid 3-letter uppercase code (e.g. USD)\n- Advertiser not found",
+        }
+    },
+)
 def create_campaign(campaign: CampaignCreate, db: Session = Depends(get_db)):
     return crud.create_campaign(db, campaign)
 
-@router.get("/campaigns/{campaign_id}", response_model=CampaignLocalOut)
+@router.get(
+    "/campaigns/{campaign_id}",
+    response_model=CampaignLocalOut,
+    responses={404: {"description": "Not Found - Campaign not found"}},
+)
 def get_campaign(campaign_id: str, db: Session = Depends(get_db)):
     return crud.get_campaign_by_id(db, campaign_id)
 
-@router.put("/campaigns/{campaign_id}", response_model=CampaignLocalOut)
+@router.put(
+    "/campaigns/{campaign_id}",
+    response_model=CampaignLocalOut,
+    responses={
+        400: {
+            "description": "Bad Request - Invalid input or advertiser not found.\n\nPossible error messages include:\n- total_budget_cents must be a valid integer\n- total_budget_cents must be a positive integer\n- total_budget_currency must not be empty\n- total_budget_currency must be a valid 3-letter uppercase code (e.g. USD)\n- Advertiser not found",
+        },
+        404: {"description": "Not Found - Campaign not found"},
+    },
+)
 def update_campaign(campaign_id: str, campaign: CampaignUpdate, db: Session = Depends(get_db)):
     return crud.update_campaign(db, campaign_id, campaign)
 
-@router.put("/campaigns/{campaign_id}/archive", response_model=CampaignLocalOut)
+@router.put(
+    "/campaigns/{campaign_id}/archive",
+    response_model=CampaignLocalOut,
+    responses={404: {"description": "Not Found - Campaign not found"}},
+)
 def toggle_campaign_archive(
     campaign_id: str,
     archived: bool = Body(..., embed=True, description="Set to true to archive, false to unarchive"),
