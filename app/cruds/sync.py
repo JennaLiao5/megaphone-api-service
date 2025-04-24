@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.models import Campaign, Advertiser, Agency
 from datetime import datetime
 import logging
-from app.megaphone_client import list_campaigns
+from app.megaphone_client import list_campaigns, list_advertisers
 
 logger = logging.getLogger(__name__)
 
@@ -116,14 +116,45 @@ def sync_campaign(db: Session, campaign_data: dict) -> Campaign:
         logger.warning(f"Data: {campaign_data}")
         logger.exception(e)
         return None
-    
+
+def sync_all_advertisers(db: Session):
+    remote_advertisers = list_advertisers()
+    remote_ids = set(c["id"] for c in remote_advertisers)
+    upserted = 0
+    failed = 0
+    deleted = 0
+    for a in remote_advertisers:
+        result = sync_advertiser(db, a)
+        if result:
+            upserted += 1
+        else:
+            failed += 1
+    local_advertisers = db.query(Advertiser).all()
+    for advertiser in local_advertisers:
+        if advertiser.megaphone_id not in remote_ids:
+            db.delete(advertiser)
+            deleted += 1
+            logger.info(f"[SYNC] Advertiser deleted - ID: {advertiser.id}, Megaphone ID: {advertiser.megaphone_id}, Name: {advertiser.name}")
+    db.commit()
+    return {"upserted": upserted, "failed": failed, "deleted": deleted}
+
 def sync_all_campaigns(db: Session):
     remote_campaigns = list_campaigns()
     remote_ids = set(c["id"] for c in remote_campaigns)
+    upserted = 0
+    failed = 0
+    deleted = 0
     for c in remote_campaigns:
-        sync_campaign(db, c)
+        result = sync_campaign(db, c)
+        if result:
+            upserted += 1
+        else:
+            failed += 1
     local_campaigns = db.query(Campaign).all()
     for campaign in local_campaigns:
         if campaign.megaphone_id not in remote_ids:
             db.delete(campaign)
+            deleted += 1
+            logger.info(f"[SYNC] Campaign deleted - ID: {campaign.id}, Megaphone ID: {campaign.megaphone_id}, Title: {campaign.title}")
     db.commit()
+    return {"upserted": upserted, "failed": failed, "deleted": deleted}

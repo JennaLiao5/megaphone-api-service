@@ -10,7 +10,7 @@ from app.apis.campaigns import router as campaign_router
 from app.apis.remote import router as remote_router
 from app.apis.sync import router as sync_router
 
-from app.cruds.sync import sync_all_campaigns
+from app.cruds.sync import sync_all_campaigns, sync_all_advertisers
 from app.logger import configure_logging
 
 configure_logging()
@@ -21,7 +21,21 @@ scheduler = BackgroundScheduler()
 def sync_job():
     try:
         with SessionLocal() as db:
-            sync_all_campaigns(db)
+            res = sync_all_advertisers(db)
+            logging.info(
+                f"Sync advertisers completed. "
+                f"Successful (Add/Update): {res.get('upserted', 0)}, "
+                f"Failed: {res.get('failed', 0)}, "
+                f"Deleted: {res.get('deleted', 0)}."
+            )
+            res = sync_all_campaigns(db)
+            logging.info(
+                f"Sync campaigns completed. "
+                f"Successful (Add/Update): {res.get('upserted', 0)}, "
+                f"Failed: {res.get('failed', 0)}, "
+                f"Deleted: {res.get('deleted', 0)}."
+
+            )
         logging.info("Sync job completed.")
     except Exception:
         logging.exception("Scheduled sync failed")
